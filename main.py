@@ -13,26 +13,36 @@ with st.form("input_form"):
     taxa_risco = st.number_input("Taxa Livre de Risco (ex: 0.11 para 11%)", min_value=0.0, max_value=1.0, value=0.11, format="%.4f")
     premio_mercado = st.number_input("Prêmio de Risco de Mercado (%)", min_value=0.0, max_value=1.0, value=0.05, format="%.4f")
     anos = st.slider("Período de análise (anos)", 1, 20, 10)
+    incluir_residual = st.checkbox("Incluir valor residual (perpetuidade)?", value=True)
     enviar = st.form_submit_button("Calcular")
 
 if enviar:
     with st.spinner("Calculando..."):
         try:
-            info = yf.Ticker(ticker).info
-            beta = info.get("beta")
+            ticker_obj = yf.Ticker(ticker)
+            beta = ticker_obj.fast_info.get("beta")
 
             if beta is None:
-                st.error("Não foi possível obter o Beta da ação.")
+                beta = 1.0  # fallback
+
+            capm = taxa_risco + beta * premio_mercado
+            fcd = 0
+
+            for t in range(1, anos + 1):
+                dividendo_projetado = dividendo * ((1 + crescimento) ** t)
+                fcd += dividendo_projetado / ((1 + capm) ** t)
+
+            # Valor residual (perpetuidade após os anos projetados)
+            if incluir_residual:
+                dividendo_final = dividendo * ((1 + crescimento) ** anos)
+                valor_residual = (dividendo_final * (1 + crescimento)) / (capm - crescimento)
+                valor_residual_descontado = valor_residual / ((1 + capm) ** anos)
+                fcd += valor_residual_descontado
             else:
-                capm = taxa_risco + beta * premio_mercado
-                fcd = 0
+                valor_residual_descontado = 0
 
-                for t in range(1, anos + 1):
-                    dividendo_projetado = dividendo * ((1 + crescimento) ** t)
-                    fcd += dividendo_projetado / ((1 + capm) ** t)
-
-                st.success("Cálculo realizado com sucesso!")
-                st.metric("Valor Justo por FCD (R$)", f"R$ {fcd:.2f}")
-                st.caption(f"Beta: {beta:.4f} | CAPM: {capm:.4f}")
+            st.success("Cálculo realizado com sucesso!")
+            st.metric("Valor Justo por FCD (R$)", f"R$ {fcd:.2f}")
+            st.caption(f"Beta: {beta:.4f} | CAPM: {capm:.4f} | Valor residual: R$ {valor_residual_descontado:.2f}")
         except Exception as e:
             st.error(f"Erro durante o cálculo: {str(e)}")
