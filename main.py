@@ -30,7 +30,7 @@ with st.form("input_form"):
         """)
     dy = st.number_input("Dividend Yield Atual (ex: 0.08 para 8%)", min_value=0.0, max_value=1.0, value=0.08, format="%.4f")
     crescimento = st.number_input("Crescimento anual dos dividendos (%)", min_value=0.0, max_value=1.0, value=0.04, format="%.4f")
-    taxa_risco = st.number_input("Taxa Livre de Risco (ex: 0.11 para 11%)", min_value=0.0, max_value=1.0, value=0.11, format="%.4f")
+    # Substituído por taxa automática via curva DI futura (simulada abaixo)
     anos = st.slider("Período de análise (anos)", 1, 20, 10)
     margem_segurança = st.number_input("Margem de segurança (%) aplicada ao valor justo", min_value=0.0, max_value=1.0, value=0.10, format="%.2f")
     enviar = st.form_submit_button("Calcular")
@@ -54,6 +54,21 @@ if enviar:
             var = np.var(df["ret_ibov"])
             beta = cov / var if var != 0 else 1.0
 
+            ano_futuro = pd.Timestamp.today().year + anos
+            import requests
+
+def get_selic_futura(ano_final):
+    try:
+        response = requests.get("https://api.bcb.gov.br/dados/serie/bcdata.sgs.1178/dados/ultimos/20?formato=json")
+        dados = response.json()
+        for item in reversed(dados):
+            if str(ano_final) in item['data']:
+                return float(item['valor'].replace(',', '.')) / 100
+        return float(dados[-1]['valor'].replace(',', '.')) / 100
+    except:
+        return 0.105  # fallback
+
+taxa_risco = get_selic_futura(ano_futuro)
             retorno_mercado = ((1 + df["ret_ibov"].mean()) ** 252) - 1
             premio_mercado = retorno_mercado - taxa_risco
             capm = taxa_risco + beta * premio_mercado
@@ -87,8 +102,9 @@ if enviar:
                 - **Retorno acumulado do IBOV**: {:.2%}
                 - **Retorno anual do IBOV**: {:.2%}
                 - **Retorno acumulado da SELIC** (aprox.): {:.2%}
-                - **Retorno anual da SELIC**: {:.2%}
-                """.format(
+                - **Retorno anual da SELIC**: {:.2%}  
+- (Estimado via curva DI futura para o ano {})
+".replace("{}                """.format(
                     retorno_acumulado_acao, retorno_anual_acao,
                     retorno_acumulado_ibov, retorno_anual_ibov,
                     retorno_acumulado_selic, retorno_anual_selic
