@@ -1,4 +1,16 @@
 # main.py
+import requests
+
+def get_selic_futura(ano_final):
+    try:
+        response = requests.get("https://api.bcb.gov.br/dados/serie/bcdata.sgs.1178/dados/ultimos/20?formato=json")
+        dados = response.json()
+        for item in reversed(dados):
+            if str(ano_final) in item['data']:
+                return float(item['valor'].replace(',', '.')) / 100
+        return float(dados[-1]['valor'].replace(',', '.')) / 100
+    except:
+        return 0.105  # fallback
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -95,15 +107,16 @@ taxa_risco = get_selic_futura(ano_futuro)
                 retorno_anual_ibov = ((1 + retorno_acumulado_ibov) ** (1 / anos)) - 1
                 retorno_anual_selic = taxa_risco
 
-                st.markdown("""
+                st.markdown(f"""
                 ### 📉 Retornos Históricos no Período
-                - **Retorno acumulado da ação**: {:.2%}
-                - **Retorno anual da ação**: {:.2%}
-                - **Retorno acumulado do IBOV**: {:.2%}
-                - **Retorno anual do IBOV**: {:.2%}
-                - **Retorno acumulado da SELIC** (aprox.): {:.2%}
-                - **Retorno anual da SELIC**: {:.2%}  
-- (Estimado via curva DI futura para o ano {})
+                - **Retorno acumulado da ação**: {retorno_acumulado_acao:.2%}
+                - **Retorno anual da ação**: {retorno_anual_acao:.2%}
+                - **Retorno acumulado do IBOV**: {retorno_acumulado_ibov:.2%}
+                - **Retorno anual do IBOV**: {retorno_anual_ibov:.2%}
+                - **Retorno acumulado da SELIC** (aprox.): {retorno_acumulado_selic:.2%}
+                - **Retorno anual da SELIC**: {retorno_anual_selic:.2%}  
+                - (Estimado via curva DI futura para o ano {ano_futuro})
+                """)
 ".replace("{}                """.format(
                     retorno_acumulado_acao, retorno_anual_acao,
                     retorno_acumulado_ibov, retorno_anual_ibov,
