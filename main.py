@@ -47,8 +47,8 @@ if enviar:
             beta = cov / var if var != 0 else 1.0
 
             retorno_mercado = ((1 + df["ret_ibov"].mean()) ** 252) - 1
-            capm = taxa_risco + beta * (retorno_mercado - taxa_risco)
             premio_mercado = retorno_mercado - taxa_risco
+            capm = taxa_risco + beta * premio_mercado
             dividendo = preco_atual * dy
 
             if capm > crescimento:
