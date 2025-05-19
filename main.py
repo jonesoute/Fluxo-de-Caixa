@@ -23,7 +23,6 @@ with st.form("input_form"):
     dy = st.number_input("Dividend Yield Atual (ex: 0.08 para 8%)", min_value=0.0, max_value=1.0, value=0.08, format="%.4f")
     crescimento = st.number_input("Crescimento anual dos dividendos (%)", min_value=0.0, max_value=1.0, value=0.04, format="%.4f")
     taxa_risco = st.number_input("Taxa Livre de Risco (ex: 0.11 para 11%)", min_value=0.0, max_value=1.0, value=0.11, format="%.4f")
-    premio_mercado = st.number_input("Prêmio de Risco de Mercado (%)", min_value=0.0, max_value=1.0, value=0.05, format="%.4f")
     anos = st.slider("Período de análise (anos)", 1, 20, 10)
     margem_segurança = st.number_input("Margem de segurança (%) aplicada ao valor justo", min_value=0.0, max_value=1.0, value=0.10, format="%.2f")
     enviar = st.form_submit_button("Calcular")
@@ -47,7 +46,9 @@ if enviar:
             var = np.var(df["ret_ibov"])
             beta = cov / var if var != 0 else 1.0
 
-            capm = taxa_risco + beta * premio_mercado
+            retorno_mercado = ((1 + df["ret_ibov"].mean()) ** 252) - 1
+            capm = taxa_risco + beta * (retorno_mercado - taxa_risco)
+            premio_mercado = retorno_mercado - taxa_risco
             dividendo = preco_atual * dy
 
             if capm > crescimento:
@@ -67,7 +68,7 @@ if enviar:
 
                 st.success("Cálculo realizado com sucesso!")
                 st.metric("Valor Justo (FCD ajustado)", f"R$ {fcd_seguro:.2f}")
-                st.caption(f"Preço atual: R$ {preco_atual:.2f} | DY: {dy:.2%} | Beta calculado: {beta:.4f} | CAPM: {capm:.4f}")
+                st.caption(f" Prêmio de risco: {premio_mercado:.2%} | DY: {dy:.2%} | Beta calculado: {beta:.4f} | CAPM: {capm:.2%} | Dividendo: R$ {dividendo:.2f}")
                 st.write(f"**{avaliacao} de {upside_pct:.2%}**")
                 st.info(mensagem)
                 st.write(f"**P/L estimado com base no dividendo:** {pl if pl == 'N/A' else f'{pl:.2f}'}")
