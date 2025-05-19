@@ -1,17 +1,3 @@
-   Essa linha está **fora de contexto e causa erro**. Parece uma tentativa de interpolação que ficou sobrando no código.
-
-   ✅ **Solução:** **remova essa linha por completo**, pois o conteúdo da `st.markdown(...)` acima já está correto.
-
-3. **Indentação desalinhada na parte do `st.markdown` e `st.subheader`:**
-   - A partir de `st.subheader("📊 Análise de Sensibilidade Personalizada")` e abaixo, a indentação está desalinhada, ficando fora do bloco `if capm > crescimento`.
-
-   ✅ **Solução:** reindente corretamente os blocos para manter a lógica dentro do `if capm > crescimento`.
-
----
-
-### ✅ Código corrigido e pronto para teste:
-
-```python
 # main.py
 import streamlit as st
 import yfinance as yf
