@@ -7,11 +7,19 @@ import numpy as np
 st.set_page_config(page_title="Valuation por FCD", layout="centered")
 st.title("📈 Calculadora de Valuation - FCD")
 
-with st.form("input_form"):
-    cols = st.columns([3, 2])
-    ticker = cols[0].text_input("Ticker da Ação (ex: PETR4)", "PETR4")
-    mostrar_preco = cols[1].empty()
+cols = st.columns([3, 2])
+ticker = cols[0].text_input("Ticker da Ação (ex: PETR4)", "PETR4")
+mostrar_preco = cols[1].empty()
 
+if ticker:
+    try:
+        ticker_api = ticker + ".SA" if not ticker.endswith(".SA") else ticker
+        preco_atual_preview = yf.Ticker(ticker_api).history(period="1d")["Close"].iloc[-1]
+        mostrar_preco.metric("Preço da ação", f"R$ {preco_atual_preview:.2f}")
+    except:
+        mostrar_preco.warning("Ticker inválido ou sem dados recentes")
+
+with st.form("input_form"):
     dy = st.number_input("Dividend Yield Atual (ex: 0.08 para 8%)", min_value=0.0, max_value=1.0, value=0.08, format="%.4f")
     crescimento = st.number_input("Crescimento anual dos dividendos (%)", min_value=0.0, max_value=1.0, value=0.04, format="%.4f")
     taxa_risco = st.number_input("Taxa Livre de Risco (ex: 0.11 para 11%)", min_value=0.0, max_value=1.0, value=0.11, format="%.4f")
@@ -26,7 +34,6 @@ if enviar:
             ticker_api = ticker + ".SA" if not ticker.endswith(".SA") else ticker
             ticker_obj = yf.Ticker(ticker_api)
             preco_atual = ticker_obj.history(period="1d")["Close"].iloc[-1]
-            mostrar_preco.metric("Preço da ação", f"R$ {preco_atual:.2f}")
 
             # Calcular o beta com base no IBOV
             ibov = yf.Ticker("^BVSP").history(period="1y")["Close"]
