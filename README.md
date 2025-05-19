@@ -1,78 +1,81 @@
-📊 Valuation por Fluxo de Caixa Livre
-Este é um aplicativo web desenvolvido com Python e Streamlit, que calcula o preço máximo recomendado para compra de uma ação com base na projeção de dividendos futuros e no modelo de valuation por fluxo de caixa descontado.
+📈 Valuation por Fluxo de Caixa Descontado (FCD)
+Este é um aplicativo web desenvolvido em Python com Streamlit para calcular o valor justo de ações com base no modelo de Fluxo de Caixa Descontado (FCD), utilizando dividendos projetados e dados históricos de mercado.
 
-🧮 Como Funciona
-O app utiliza os seguintes conceitos:
+🧩 Funcionalidades
+📌 Entrada de parâmetros manuais:
 
-CAPM (Capital Asset Pricing Model) para calcular o retorno exigido
+Ticker da ação
+Dividend Yield atual
+Crescimento anual dos dividendos
+Taxa livre de risco
+Prêmio de risco de mercado
+Período de análise (anos)
+Margem de segurança sobre o valor justo
 
-Modelo de Gordon ajustado para calcular o valor presente dos dividendos futuros
+📊 Cálculos automáticos:
+Preço da ação via Yahoo Finance (visível ao digitar o ticker)
+Beta calculado com base na covariância com o IBOVESPA
+CAPM (retorno exigido)
+Fluxo de Caixa Descontado com valor residual
+Valor justo com aplicação de margem de segurança
+Upside/Downside e avaliação final
+Múltiplo estimado P/L com base nos dividendos
 
-Busca automática de dados da ação (preço atual, beta) via API do yfinance
+🧮 Análise de Sensibilidade:
+Simulação de valor justo em cenários com diferentes taxas de crescimento e CAPM
 
-📝 Entradas do Usuário
-Campo	Tipo	Descrição
-Ticker	Texto	Código da ação (ex: PETR4)
-Valor do Dividendo Atual	Numérico	Último dividendo anual pago (R$)
-Dividend Yield Atual (%)	Percentual	DY atual com base no preço da ação
-Crescimento dos Dividendos (%)	Percentual	Estimativa de crescimento anual dos dividendos
-Período de Análise (anos)	Numérico	Quantos anos considerar na projeção (ex: 10)
-Taxa Livre de Risco (%)	Percentual	Ex: SELIC atual
-Prêmio pelo Risco de Mercado (%)	Percentual	Diferença entre mercado e livre de risco
+📦 Requisitos
+txt
+Copiar
+Editar
+streamlit>=1.30.0
+yfinance>=0.2.36
+pandas>=2.0.3
+numpy>=1.25.2
+▶️ Como executar localmente
+Clone o repositório:
 
-🔁 Saídas Calculadas
-Preço atual da ação (via API)
-
-Beta da ação (via API)
-
-CAPM: retorno exigido pelo investidor
-
-💰 Preço máximo recomendado (valuation): quanto vale pagar pela ação com base nos dividendos futuros
-
-🚀 Executando Localmente
-1. Clone o repositório
 bash
 Copiar
 Editar
-git clone https://github.com/seu-usuario/valor-justo-dividendos.git
-cd valor-justo-dividendos
-2. Crie o ambiente virtual e ative:
+git clone https://github.com/seu-usuario/valuation-fcd.git
+cd valuation-fcd
+(Opcional) Crie um ambiente virtual:
+
 bash
 Copiar
 Editar
 python -m venv venv
 source venv/bin/activate  # Linux/macOS
 venv\\Scripts\\activate   # Windows
-3. Instale as dependências:
+Instale as dependências:
+
 bash
 Copiar
 Editar
 pip install -r requirements.txt
-4. Execute o app:
+Execute o app:
+
 bash
 Copiar
 Editar
 streamlit run main.py
-🌐 Implantação na Nuvem (Streamlit Cloud)
-Você pode publicar seu app gratuitamente em: https://streamlit.io/cloud
+🧪 Exemplo de uso
+Digite o ticker (ex: PETR4), informe os parâmetros como DY, crescimento dos dividendos e taxa Selic, e o app irá:
 
-Faça login com sua conta GitHub
+Calcular o beta com base no IBOV
+Estimar o valor justo da ação via FCD
+Exibir se há Upside ou Downside
+Mostrar uma tabela de sensibilidade para diferentes cenários
 
-Conecte o repositório
+🛠 Devcontainer (opcional)
+Se estiver usando GitHub Codespaces ou VSCode com Docker, inclua o .devcontainer/devcontainer.json para configuração automática do ambiente.
 
-Selecione main.py como arquivo principal
-
-Clique em "Deploy"
-
-📚 Tecnologias Usadas
-Python 3.x
-
+📚 Tecnologias
 Streamlit
-
 yfinance
+Pandas e NumPy
+Python 3.11+
 
-Pandas & NumPy
-
-📩 Licença
-Este projeto está licenciado sob a MIT License. Sinta-se livre para usar e modificar.
-
+📄 Licença
+Este projeto está licenciado sob a MIT License.
