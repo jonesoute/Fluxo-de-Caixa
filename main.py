@@ -20,6 +20,14 @@ if ticker:
         mostrar_preco.warning("Ticker inválido ou sem dados recentes")
 
 with st.form("input_form"):
+    with st.expander("ℹ️ Entenda os campos de entrada"):
+        st.markdown("""
+        - **Dividend Yield Atual**: proporção de dividendos pagos em relação ao preço atual da ação.
+        - **Crescimento dos Dividendos**: taxa de crescimento anual esperada dos dividendos.
+        - **Taxa Livre de Risco**: rendimento de um investimento sem risco, normalmente baseado na Selic.
+        - **Período de Análise**: tempo considerado para o modelo de fluxo de caixa descontado.
+        - **Margem de Segurança**: percentual de desconto aplicado sobre o valor justo calculado.
+        """)
     dy = st.number_input("Dividend Yield Atual (ex: 0.08 para 8%)", min_value=0.0, max_value=1.0, value=0.08, format="%.4f")
     crescimento = st.number_input("Crescimento anual dos dividendos (%)", min_value=0.0, max_value=1.0, value=0.04, format="%.4f")
     taxa_risco = st.number_input("Taxa Livre de Risco (ex: 0.11 para 11%)", min_value=0.0, max_value=1.0, value=0.11, format="%.4f")
@@ -63,6 +71,29 @@ if enviar:
                     "O preço de mercado está acima do valor justo estimado"
                 )
 
+                # Retornos acumulados e anuais
+                retorno_acumulado_acao = (df['acao'].iloc[-1] / df['acao'].iloc[0]) - 1
+                retorno_acumulado_ibov = (df['ibov'].iloc[-1] / df['ibov'].iloc[0]) - 1
+                retorno_acumulado_selic = ((1 + taxa_risco) ** anos) - 1
+
+                retorno_anual_acao = ((1 + retorno_acumulado_acao) ** (1 / anos)) - 1
+                retorno_anual_ibov = ((1 + retorno_acumulado_ibov) ** (1 / anos)) - 1
+                retorno_anual_selic = taxa_risco
+
+                st.markdown("""
+                ### 📉 Retornos Históricos no Período
+                - **Retorno acumulado da ação**: {:.2%}
+                - **Retorno anual da ação**: {:.2%}
+                - **Retorno acumulado do IBOV**: {:.2%}
+                - **Retorno anual do IBOV**: {:.2%}
+                - **Retorno acumulado da SELIC** (aprox.): {:.2%}
+                - **Retorno anual da SELIC**: {:.2%}
+                """.format(
+                    retorno_acumulado_acao, retorno_anual_acao,
+                    retorno_acumulado_ibov, retorno_anual_ibov,
+                    retorno_acumulado_selic, retorno_anual_selic
+                ))
+
                 # Cálculo de múltiplos
                 pl = preco_atual / dividendo if dividendo > 0 else "N/A"
 
@@ -73,21 +104,43 @@ if enviar:
                 st.info(mensagem)
                 st.write(f"**P/L estimado com base no dividendo:** {pl if pl == 'N/A' else f'{pl:.2f}'}")
 
-                # Análise de sensibilidade
-                st.subheader("📊 Análise de Sensibilidade")
-                st.write("Simulação do valor justo com diferentes taxas de crescimento e CAPM:")
-                sens_df = pd.DataFrame(index=["+1%", "+2%", "+3%", "+4%"], columns=["CAPM 10%", "CAPM 12%", "CAPM 14%"])
-                taxas_crescimento = [crescimento + x/100 for x in range(1, 5)]
-                taxas_capm = [0.10, 0.12, 0.14]
+                # Análise de sensibilidade - Opção 2 customizável
+                st.subheader("📊 Análise de Sensibilidade Personalizada")
+st.markdown("""
+**Como interpretar:**
+- **Crescimento dos Dividendos**: simula como variações na expectativa de crescimento anual dos dividendos afetam o valor justo da ação.
+- **Taxa de Desconto (CAPM)**: simula diferentes percepções de risco, ajustando a taxa de desconto usada no modelo.
+- **Dividend Yield**: simula variações na rentabilidade de dividendos em relação ao preço da ação.
+""")
+                simulacao = st.selectbox("Simular variações em:", ["Crescimento dos Dividendos", "Taxa de Desconto (CAPM)", "Dividend Yield"])
 
-                for i, cres in enumerate(taxas_crescimento):
-                    for j, cap in enumerate(taxas_capm):
-                        if cap > cres:
-                            valor = (dividendo * (1 + cres)) / (cap - cres)
-                            sens_df.iloc[i, j] = f"R$ {valor:.2f}"
-                        else:
-                            sens_df.iloc[i, j] = "Inválido"
-                st.dataframe(sens_df)
+                cenarios = {
+                    "Pessimista": -0.02,
+                    "Neutro": 0,
+                    "Otimista": 0.02
+                }
+                resultado = {}
+
+                for nome, variacao in cenarios.items():
+                    if simulacao == "Crescimento dos Dividendos":
+                        cresc = crescimento + variacao
+                        taxa = capm
+                        valor = (dividendo * (1 + cresc)) / (taxa - cresc) if taxa > cresc else None
+                    elif simulacao == "Taxa de Desconto (CAPM)":
+                        cresc = crescimento
+                        taxa = capm + variacao
+                        valor = (dividendo * (1 + cresc)) / (taxa - cresc) if taxa > cresc else None
+                    elif simulacao == "Dividend Yield":
+                        dy_simulado = dy + variacao
+                        div_sim = preco_atual * dy_simulado
+                        valor = (div_sim * (1 + crescimento)) / (capm - crescimento) if capm > crescimento else None
+                    else:
+                        valor = None
+
+                    resultado[nome] = f"R$ {valor:.2f}" if valor else "Inválido"
+
+                st.write("**Cenários:**")
+                st.table(pd.DataFrame(resultado.items(), columns=["Cenário", "Valor Justo Simulado"]))
             else:
                 st.error("Erro: CAPM deve ser maior que o crescimento dos dividendos para o cálculo do FCD.")
 
