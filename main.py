@@ -36,7 +36,6 @@ with st.form("input_form"):
         st.markdown("""
         - **Dividend Yield Atual**: proporção de dividendos pagos em relação ao preço atual da ação.
         - **Crescimento dos Dividendos**: taxa de crescimento anual esperada dos dividendos.
-        - **Taxa Livre de Risco**: rendimento de um investimento sem risco, normalmente baseado na Selic.
         - **Período de Análise**: tempo considerado para o modelo de fluxo de caixa descontado.
         - **Margem de Segurança**: percentual de desconto aplicado sobre o valor justo calculado.
         """)
