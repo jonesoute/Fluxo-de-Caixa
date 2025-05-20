@@ -16,7 +16,6 @@ def get_selic_futura(ano_final):
     except:
         return 0.105  # fallback
 
-# Interface
 st.set_page_config(page_title="Valuation por FCD", layout="centered")
 st.title("📈 Calculadora de Valuation - FCD")
 
@@ -50,11 +49,12 @@ with st.form("input_form"):
 if enviar:
     with st.spinner("Calculando..."):
         try:
+            if "dados" not in st.session_state:
+                st.session_state["dados"] = {}
             ticker_api = ticker + ".SA" if not ticker.endswith(".SA") else ticker
             ticker_obj = yf.Ticker(ticker_api)
             preco_atual = ticker_obj.history(period="1d")["Close"].iloc[-1]
 
-            # Calcular Beta
             ibov = yf.Ticker("^BVSP").history(period="1y")["Close"]
             acao = ticker_obj.history(period="1y")["Close"]
             df = pd.DataFrame({"acao": acao, "ibov": ibov}).dropna()
@@ -71,17 +71,29 @@ if enviar:
             retorno_mercado = ((1 + df["ret_ibov"].mean()) ** 252) - 1
             premio_mercado = retorno_mercado - taxa_risco
             capm = taxa_risco + beta * premio_mercado
+            st.session_state["dados"] = {
+                "capm": capm,
+                "crescimento": crescimento,
+                "dy": dy,
+                "preco_atual": preco_atual,
+                "dividendo": dividendo
+            }
             dividendo = preco_atual * dy
 
             if capm > crescimento:
-                fcd_bruto = (dividendo * (1 + crescimento)) / (capm - crescimento)
+                fcd_fluxos = sum([(dividendo * (1 + crescimento) ** t) / (1 + capm) ** t for t in range(1, anos + 1)])
+                valor_residual = ((dividendo * (1 + crescimento) ** (anos + 1)) / (capm - crescimento)) / (1 + capm) ** anos
+                fcd_bruto = fcd_fluxos + valor_residual
                 fcd_seguro = fcd_bruto * (1 - margem_segurança)
                 upside = fcd_seguro - preco_atual
                 upside_pct = (fcd_seguro / preco_atual) - 1
                 avaliacao = "Upside" if upside > 0 else "Downside"
-                mensagem = "O preço de mercado está abaixo do valor justo calculado" if upside > 0 else "O preço de mercado está acima do valor justo estimado"
+                mensagem = (
+                    "O preço de mercado está abaixo do valor justo calculado"
+                    if upside > 0 else
+                    "O preço de mercado está acima do valor justo estimado"
+                )
 
-                # Retornos históricos
                 retorno_acumulado_acao = (df['acao'].iloc[-1] / df['acao'].iloc[0]) - 1
                 retorno_acumulado_ibov = (df['ibov'].iloc[-1] / df['ibov'].iloc[0]) - 1
                 retorno_acumulado_selic = ((1 + taxa_risco) ** anos) - 1
@@ -90,34 +102,65 @@ if enviar:
                 retorno_anual_ibov = ((1 + retorno_acumulado_ibov) ** (1 / anos)) - 1
                 retorno_anual_selic = taxa_risco
 
-                st.markdown(f"""
-                ### 📉 Retornos Históricos no Período
-                - **Retorno acumulado da ação**: {retorno_acumulado_acao:.2%}
-                - **Retorno anual da ação**: {retorno_anual_acao:.2%}
-                - **Retorno acumulado do IBOV**: {retorno_acumulado_ibov:.2%}
-                - **Retorno anual do IBOV**: {retorno_anual_ibov:.2%}
-                - **Retorno acumulado da SELIC** (aprox.): {retorno_acumulado_selic:.2%}
-                - **Retorno anual da SELIC**: {retorno_anual_selic:.2%}  
-                - (Estimado via curva DI futura para o ano {ano_futuro})
-                """)
+                df_retornos = pd.DataFrame({
+                    "Índice": ["Ação", "IBOV", "SELIC (aprox.)"],
+                    "Retorno Acumulado": [retorno_acumulado_acao, retorno_acumulado_ibov, retorno_acumulado_selic],
+                    "Retorno Anualizado": [retorno_anual_acao, retorno_anual_ibov, retorno_anual_selic]
+                })
+                st.subheader("📉 Retornos Históricos no Período")
+                st.dataframe(df_retornos.style.format({"Retorno Acumulado": "{:.2%}", "Retorno Anualizado": "{:.2%}"}))
+                st.caption(f"Estimado via curva DI futura para o ano {ano_futuro}")
 
                 pl = preco_atual / dividendo if dividendo > 0 else "N/A"
+
                 st.success("Cálculo realizado com sucesso!")
                 st.metric("Valor Justo (FCD ajustado)", f"R$ {fcd_seguro:.2f}")
                 st.caption(f" Prêmio de risco: {premio_mercado:.2%} | DY: {dy:.2%} | Beta calculado: {beta:.4f} | CAPM: {capm:.2%} | Dividendo: R$ {dividendo:.2f}")
                 st.write(f"**{avaliacao} de {upside_pct:.2%}**")
                 st.info(mensagem)
+                st.write(f"**P/L estimado com base no dividendo:** {pl if pl == 'N/A' else f'{pl:.2f}'})")
+
+                with st.expander("📋 Ver detalhes dos fluxos de dividendos"):
+                    fluxo_tabela = []
+                    acumulado = 0
+                    for t in range(1, anos + 1):
+                        div_proj = dividendo * (1 + crescimento) ** t
+                        valor_desc = div_proj / (1 + capm) ** t
+                        acumulado += valor_desc
+                        fluxo_tabela.append({
+                            "Ano": t,
+                            "Dividendo Projetado": div_proj,
+                            "Valor Presente": valor_desc,
+                            "Valor Justo Acumulado": acumulado
+                        })
+
+                    fluxo_df = pd.DataFrame(fluxo_tabela)
+                    fluxo_df["Dividendo Projetado"] = fluxo_df["Dividendo Projetado"].map("R$ {:.2f}".format)
+                    fluxo_df["Valor Presente"] = fluxo_df["Valor Presente"].map("R$ {:.2f}".format)
+                    fluxo_df["Valor Justo Acumulado"] = fluxo_df["Valor Justo Acumulado"].map("R$ {:.2f}".format)
+                    st.table(fluxo_df)
+
+                    st.markdown(f"**Valor residual ao final de {anos} anos:** R$ {valor_residual:.2f}")
+                    st.markdown(f"**Valor justo total (sem margem):** R$ {fcd_bruto:.2f}")
                 st.write(f"**P/L estimado com base no dividendo:** {pl if pl == 'N/A' else f'{pl:.2f}'}")
 
-                # Análise de Sensibilidade
                 st.subheader("📊 Análise de Sensibilidade Personalizada")
-                st.markdown("""
-                **Como interpretar:**
-                - **Crescimento dos Dividendos**: simula como variações na expectativa de crescimento anual dos dividendos afetam o valor justo da ação.
-                - **Taxa de Desconto (CAPM)**: simula diferentes percepções de risco, ajustando a taxa de desconto usada no modelo.
-                - **Dividend Yield**: simula variações na rentabilidade de dividendos em relação ao preço da ação.
-                """)
-                simulacao = st.selectbox("Simular variações em:", ["Crescimento dos Dividendos", "Taxa de Desconto (CAPM)", "Dividend Yield"])
+if "dados" in st.session_state:
+    dados = st.session_state["dados"]
+    capm = dados["capm"]
+    crescimento = dados["crescimento"]
+    dy = dados["dy"]
+    preco_atual = dados["preco_atual"]
+    dividendo = dados["dividendo"]
+
+    st.markdown("""
+**Como interpretar:**
+- **Crescimento dos Dividendos**: simula como variações na expectativa de crescimento anual dos dividendos afetam o valor justo da ação.
+- **Crescimento dos Dividendos (CAPM)**: simula diferentes percepções de risco, ajustando a taxa de desconto usada no modelo.
+- **Dividend Yield**: simula variações na rentabilidade de dividendos em relação ao preço da ação.
+""")
+    simulacao = st.selectbox("Simular variações em:", ["Crescimento dos Dividendos", "Taxa de Desconto (CAPM)", "Dividend Yield"])
+", "Dividend Yield"])
 
                 cenarios = {
                     "Pessimista": -0.02,
@@ -139,11 +182,15 @@ if enviar:
                         dy_simulado = dy + variacao
                         div_sim = preco_atual * dy_simulado
                         valor = (div_sim * (1 + crescimento)) / (capm - crescimento) if capm > crescimento else None
+                    else:
+                        valor = None
+
                     resultado[nome] = f"R$ {valor:.2f}" if valor else "Inválido"
 
                 st.write("**Cenários:**")
                 st.table(pd.DataFrame(resultado.items(), columns=["Cenário", "Valor Justo Simulado"]))
             else:
                 st.error("Erro: CAPM deve ser maior que o crescimento dos dividendos para o cálculo do FCD.")
+
         except Exception as e:
             st.error(f"Erro durante o cálculo: {str(e)}")
