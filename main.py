@@ -160,7 +160,6 @@ if "dados" in st.session_state:
 - **Dividend Yield**: simula variações na rentabilidade de dividendos em relação ao preço da ação.
 """)
     simulacao = st.selectbox("Simular variações em:", ["Crescimento dos Dividendos", "Taxa de Desconto (CAPM)", "Dividend Yield"])
-","Dividend Yield"])
 
                 cenarios = {
                     "Pessimista": -0.02,
