@@ -155,7 +155,7 @@ if "dados" in st.session_state:
 - **Taxa de Desconto (CAPM)**: simula diferentes percepções de risco, ajustando a taxa de desconto usada no modelo.
 - **Dividend Yield**: simula variações na rentabilidade de dividendos em relação ao preço da ação.
 """)
-    simulacao = st.selectbox("Simular variações em:", ["Crescimento dos Dividendos", "Taxa de Desconto (CAPM)", "Dividend Yield"])
+    simulacao = st.selectbox("Simular variações em:", ["Crescimento dos Dividendos", "Taxa de Desconto (CAPM)", "Dividend Yield"])", "Dividend Yield"])
     cenarios = {"Pessimista": -0.02, "Neutro": 0, "Otimista": 0.02}
     resultado = {}
     for nome, variacao in cenarios.items():
