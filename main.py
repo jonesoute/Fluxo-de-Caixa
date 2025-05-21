@@ -94,12 +94,12 @@ if enviar or "dados" in st.session_state:
                 retorno_anual_ibov = ((1 + retorno_acumulado_ibov) ** (1 / anos)) - 1
                 retorno_anual_selic = taxa_risco
                 df_retornos = pd.DataFrame({
-                    "Índice": ["Ação", "IBOV", "SELIC (aprox.)"],
+                    "Índice": [ticker.upper(), "IBOV", "SELIC (aprox.)"],
                     "Retorno Acumulado": [retorno_acumulado_acao, retorno_acumulado_ibov, retorno_acumulado_selic],
                     "Retorno Anualizado": [retorno_anual_acao, retorno_anual_ibov, retorno_anual_selic]
                 })
                 st.subheader("📉 Retornos Históricos no Período")
-                st.dataframe(df_retornos.style.format({"Retorno Acumulado": "{:.2%}", "Retorno Anualizado": "{:.2%}"}))
+                st.dataframe(df_retornos.style.format({"Retorno Acumulado": "{:.2%}", "Retorno Anualizado": "{:.2%}"}), hide_index=True)
                 st.caption(f"Estimado via curva DI futura para o ano {ano_futuro}")
                 pl = preco_atual / dividendo if dividendo > 0 else "N/A"
                 st.success("Cálculo realizado com sucesso!")
