@@ -46,7 +46,7 @@ with st.form("input_form"):
     margem_segurança = st.number_input("Margem de segurança (%) aplicada ao valor justo", min_value=0.0, max_value=1.0, value=0.10, format="%.2f")
     enviar = st.form_submit_button("Calcular")
 
-if enviar:
+if enviar or "dados" in st.session_state:
     with st.spinner("Calculando..."):
         try:
             ticker_api = ticker + ".SA" if not ticker.endswith(".SA") else ticker
