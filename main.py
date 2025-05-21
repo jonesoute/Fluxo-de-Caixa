@@ -44,7 +44,15 @@ with st.form("input_form"):
     crescimento = st.number_input("Crescimento anual dos dividendos (%)", min_value=0.0, max_value=1.0, value=0.04, format="%.4f")
     anos = st.slider("Período de análise (anos)", 1, 20, 10)
     margem_segurança = st.number_input("Margem de segurança (%) aplicada ao valor justo", min_value=0.0, max_value=1.0, value=0.10, format="%.2f")
-    enviar = st.form_submit_button("Calcular")
+    cols_botoes = st.columns([1, 1])
+enviar = cols_botoes[0].form_submit_button("Calcular")
+limpar = cols_botoes[1].form_submit_button("Nova Análise")
+
+if limpar:
+    for chave in ["dados"]:
+        if chave in st.session_state:
+            del st.session_state[chave]
+    st.experimental_rerun()
 
 if enviar or "dados" in st.session_state:
     with st.spinner("Calculando..."):
